@@ -65,6 +65,8 @@ describe('json-format issue regressions', () => {
         expect(source).toContain('shouldUsePlainJsonView');
         expect(source).toContain("jfContent.off('.fhJsonTree')");
         expect(source).toContain("jfContent.on('click.fhJsonTree', 'span.expand'");
+        expect(source).toContain("jfContent.on('click.fhJsonTree', '.item-block > .key'");
+        expect(source).toContain('let _toggleJsonNodeCollapse = function (node)');
         expect(source).toContain("jfContent.on('click.fhJsonTree', '.item'");
         expect(source).not.toContain("$('#jfContent .item').each(function ()");
         expect(source).not.toContain("$('#jfContent .item').bind('click'");

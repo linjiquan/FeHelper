@@ -1466,6 +1466,20 @@ window.Formatter = (function () {
         jfStatusBar && jfStatusBar.hide();
     };
 
+    let _toggleJsonNodeCollapse = function (node) {
+        let parentEl = $(node);
+        if (!parentEl.children('.kv-list').length) {
+            return false;
+        }
+
+        parentEl.toggleClass('collapsed');
+        if (parentEl.hasClass('collapsed')) {
+            collapse(parentEl);
+        }
+        jfStatusBar && jfStatusBar.hide();
+        return true;
+    };
+
     /**
      * 创建几个全局操作的按钮，置于页面右上角即可
      * @private
@@ -1536,11 +1550,13 @@ window.Formatter = (function () {
             ev.preventDefault();
             ev.stopPropagation();
 
-            let parentEl = $(this).parent();
-            parentEl.toggleClass('collapsed');
+            _toggleJsonNodeCollapse($(this).parent());
+        });
 
-            if (parentEl.hasClass('collapsed')) {
-                collapse(parentEl);
+        jfContent.on('click.fhJsonTree', '.item-block > .key', function (ev) {
+            if (_toggleJsonNodeCollapse($(this).parent())) {
+                ev.preventDefault();
+                ev.stopPropagation();
             }
         });
 
