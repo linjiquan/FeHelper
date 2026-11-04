@@ -1845,8 +1845,8 @@ window.Formatter = (function () {
             });
     };
 
-    let _renderLargeJsonTree = function() {
-        if (!_canRenderFormattedResult() || !_canRenderLargeJsonTree()) return false;
+    let _renderLargeJsonTree = function(force) {
+        if (!_canRenderFormattedResult() || (!force && !_canRenderLargeJsonTree())) return false;
         let previousEscape = escapeJsonStringEnabled;
         try {
             // Nested JSON strings remain strings: expanding them would bypass
@@ -1889,16 +1889,15 @@ window.Formatter = (function () {
         _setPlainJsonView(true);
         $('#optionBar .fh-json-meta-toggle, #optionBar .fh-json-collapse-toggle').hide();
         $('<span class="fh-json-large-mode-note" title="大型 JSON 默认显示完整文本，可按需加载节点操作">大 JSON 文本视图</span>').prependTo('#optionBar');
-        if (_canRenderLargeJsonTree()) {
-            $('<button class="xjf-btn xjf-btn-mid fh-json-large-tree" title="加载节点以复制、查看路径、下载或删除；较大数据可能需要稍候">切换为节点视图</button>')
-                .appendTo('#optionBar').bind('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    _renderLargeJsonTree();
-                });
-        } else {
-            $('<span class="fh-json-large-mode-note">超出节点视图安全范围（200万字符、2万节点或100层），可复制或下载全文</span>').appendTo('#optionBar');
-        }
+        let largeTreeTip = _canRenderLargeJsonTree()
+            ? '加载节点视图，较大数据可能需要稍候'
+            : '超出节点视图安全范围（200万字符、2万节点或100层），仍可强制解析；数据过大时浏览器可能卡顿或无响应';
+        $('<button class="xjf-btn xjf-btn-mid fh-json-large-force-tree" title="' + largeTreeTip + '">解析</button>')
+            .appendTo('#optionBar').bind('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                _renderLargeJsonTree(true);
+            });
         _emitFormatReady();
         return true;
     };

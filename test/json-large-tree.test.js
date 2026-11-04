@@ -9,6 +9,7 @@ const source = fs.readFileSync(new URL('../apps/json-format/format-lib.js', impo
 
 function largeView(value) {
     const buttons = [];
+    const forceButtons = [];
     const calls = [];
     const wrap = () => {
         const result = {html() { return result; }, empty() {}, text() {}};
@@ -29,13 +30,14 @@ function largeView(value) {
         $(html) {
             const el = {html() {}, hide() {}, prependTo() {return el;}, appendTo() {return el;}, bind(event, handler) {el.click = handler;}};
             if (html.includes('fh-json-large-tree')) buttons.push(el);
+            if (html.includes('fh-json-large-force-tree')) forceButtons.push(el);
             return el;
         }
     });
     const start = source.indexOf('    let _canRenderLargeJsonTree = function');
     const end = source.indexOf('    /**', start);
     vm.runInContext(source.slice(start, end), context);
-    return {context, calls, buttons, run(code) {return vm.runInContext(code, context);}};
+    return {context, calls, buttons, forceButtons, run(code) {return vm.runInContext(code, context);}};
 }
 
 describe('#658: opt into a bounded node view for large JSON', () => {
@@ -43,8 +45,9 @@ describe('#658: opt into a bounded node view for large JSON', () => {
         const value = {payload: 'x'.repeat(640000), tail: {id: 1234567890123456789n}};
         const view = largeView(value);
         view.run('_renderLargeJsonPlainView()');
-        expect(view.buttons).toHaveLength(1);
-        view.buttons[0].click({preventDefault() {}, stopPropagation() {}});
+        expect(view.buttons).toHaveLength(0);
+        expect(view.forceButtons).toHaveLength(1);
+        view.forceButtons[0].click({preventDefault() {}, stopPropagation() {}});
         expect(view.calls).toContain('render');
         expect(view.calls.slice(-5)).toEqual(['toolbar', 'events', 'download', 'search', 'ready']);
         expect(view.context.largeJsonPlainViewEnabled).toBe(false);
@@ -58,13 +61,18 @@ describe('#658: opt into a bounded node view for large JSON', () => {
         {payload: 'x'.repeat(2000001)},
         Array(20001).fill(1),
         Array.from({length: 102}).reduce(value => ({child: value}), {})
-    ])('does not bypass size, node, or depth protection', value => {
+    ])('offers an explicit force switch beyond size, node, or depth protection', value => {
         const view = largeView(value);
         view.run('_renderLargeJsonPlainView()');
         expect(view.buttons).toHaveLength(0);
+        expect(view.forceButtons).toHaveLength(1);
         expect(view.run('_renderLargeJsonTree()')).toBe(false);
         expect(view.calls).not.toContain('render');
         expect(view.context.largeJsonPlainViewEnabled).toBe(true);
+        view.forceButtons[0].click({preventDefault() {}, stopPropagation() {}});
+        expect(view.calls).toContain('render');
+        expect(view.context.largeJsonPlainViewEnabled).toBe(false);
+        expect(view.context.largeJsonNodeViewEnabled).toBe(true);
     });
 
     it('retains complete plaintext if tree construction fails', () => {
