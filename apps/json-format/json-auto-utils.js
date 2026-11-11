@@ -581,6 +581,10 @@
         nodes.forEach(function (element, index) {
             if (!element || typeof element.setAttribute !== 'function') return;
             element.setAttribute('data-array-index', String(index));
+            const indexLabel = Array.from(element.children || []).find(function (child) {
+                return String(child.className || '').split(/\s+/).includes('array-index');
+            });
+            if (indexLabel) indexLabel.textContent = String(index);
 
             const directComma = Array.from(element.children || []).find(function (child) {
                 return String(child.className || '').split(/\s+/).includes('comma');

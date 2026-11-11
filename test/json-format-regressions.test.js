@@ -72,7 +72,7 @@ describe('json-format issue regressions', () => {
         expect(source).not.toContain("$('#jfContent .item').bind('click'");
         expect(source).not.toContain("jfOptEl.find('a.opt-download').unbind('click').bind('click'");
         expect(source).toContain('reindexArrayElementNodes');
-        expect(source).toContain("arrayContainer.children('.item-array-element').toArray()");
+        expect(source).toContain("arrayContainer.find('.item-array-element').toArray()");
     });
 
     it('Issue #640/#638: formatter download paths use safe stringify and window-note filenames', () => {
@@ -223,6 +223,24 @@ describe('large JSON page result lifecycle (#666 / #658)', () => {
         expect(page.node('jfContent').style.display).not.toBe('none');
         expect(page.node('jfContent_pre').style.display).toBe('none');
     });
+    it('shows array item indexes in the tree view', async () => {
+        const page = createFormatPage();
+        expect(await page.format('{"path_list":["/a","/b"]}')).toBe(true);
+        const html = page.node('jfContent').innerHTML;
+        expect(html).toContain('<span class="array-index">0</span><span class="array-index-colon">: </span>');
+        expect(html).toContain('<span class="array-index">1</span><span class="array-index-colon">: </span>');
+        expect(html).toContain('<span class="key">path_list</span>');
+    });
+    it('groups oversized arrays into collapsed index ranges', async () => {
+        const page = createFormatPage();
+        const value = {ttnet_dispatch_actions: Array.from({length: 373}, (_, index) => '/path/' + index)};
+        expect(await page.format(JSON.stringify(value))).toBe(true);
+        const html = page.node('jfContent').innerHTML;
+        expect(html).toContain('item-array-range collapsed');
+        expect(html).toContain('<span class="array-range-label">[ <span class="array-range-start">0</span> - <span class="array-range-end">100</span> ]</span>');
+        expect(html).toContain('<span class="array-range-label">[ <span class="array-range-start">300</span> - <span class="array-range-end">373</span> ]</span>');
+        expect(html).toContain('data-array-index="372"');
+    });
 });
 
 describe('tree data integrity', () => {
@@ -230,14 +248,14 @@ describe('tree data integrity', () => {
         const source = readSource('apps/json-format/format-lib.js');
         const start = source.indexOf('let getJsonText = function');
         const end = source.indexOf('let _getJsonPathKeys', start);
-        let removeAllMenus = false;
+        const removedSelectors = [];
         const value = {nested: {message: '复制|下载|删除', other: '复制路径|复制|下载|删除'}};
         const clone = {
             find(selector) {
-                expect(selector).toBe('.boxOpt');
-                return {remove() { removeAllMenus = true; }};
+                removedSelectors.push(selector);
+                return {remove() {}};
             },
-            text() { return JSON.stringify(value) + (removeAllMenus ? '' : '复制|复制路径|下载|删除'); }
+            text() { return JSON.stringify(value); }
         };
         const actual = vm.runInNewContext(source.slice(start, end) + '\ngetJsonText(el);', {
             cachedJsonValue: null,
@@ -245,6 +263,8 @@ describe('tree data integrity', () => {
             _safeStringify: (value, space) => JSON.stringify(value, null, space)
         });
         expect(JSON.parse(actual)).toEqual(value);
+        expect(removedSelectors).toContain('.boxOpt');
+        expect(removedSelectors).toContain('.array-index,.array-index-colon');
     });
 
     it('#669: collapse and expand include a root array as well as nested containers', () => {

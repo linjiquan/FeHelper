@@ -641,6 +641,7 @@ window.Formatter = (function () {
 
         const cleanNode = el.clone();
         cleanNode.find('.boxOpt').remove();
+        cleanNode.find('.array-index,.array-index-colon').remove();
         let txt = cleanNode.text()
             .replace(/":\s/gm, '":')
             .replace(/,$/, '')
@@ -1015,7 +1016,7 @@ window.Formatter = (function () {
                 return false;
             }
             let arrayContainer = el.hasClass('item-array-element')
-                ? el.parent('.item-array-container')
+                ? el.closest('.item-array-container')
                 : null;
             let utils = window.FHJsonAutoUtils || {};
             if (
@@ -1033,7 +1034,7 @@ window.Formatter = (function () {
                 typeof utils.reindexArrayElementNodes === 'function'
             ) {
                 utils.reindexArrayElementNodes(
-                    arrayContainer.children('.item-array-element').toArray(),
+                    arrayContainer.find('.item-array-element').toArray(),
                     document
                 );
             }
@@ -1138,7 +1139,11 @@ window.Formatter = (function () {
         }).get().join(' ');
 
         if (!directText) {
-            directText = el.clone().children('.kv-list,.boxOpt').remove().end().text();
+            directText = el.clone()
+                .children('.kv-list,.boxOpt,.array-index,.array-index-colon')
+                .remove()
+                .end()
+                .text();
         }
 
         return String(directText || '').replace(/\s+/g, ' ').trim();
@@ -2189,6 +2194,16 @@ window.Formatter = (function () {
         return key;
     };
 
+    let _getArrayIndexHTML = function(index) {
+        return '<span class="array-index">' + index + '</span><span class="array-index-colon">: </span>';
+    };
+
+    let ARRAY_RANGE_GROUP_SIZE = 100;
+
+    let _shouldGroupArrayItems = function(value) {
+        return Array.isArray(value) && value.length > ARRAY_RANGE_GROUP_SIZE;
+    };
+
     // 工具函数：获取或创建唯一图片预览浮窗节点
     function getOrCreateImgPreview() {
         let $img = $('#fh-img-preview');
@@ -2335,6 +2350,51 @@ window.Formatter = (function () {
                 return html;
             },
             
+            getArrayElementHTML: function(item, index, arrayLength) {
+                let childNode = createNode(item);
+                let html = '<div class="item item-block item-array-element" data-array-index="' + index + '">';
+
+                if (childNode.type === 'object' || childNode.type === 'array') {
+                    html += '<span class="expand"></span>';
+                    html += _getArrayIndexHTML(index);
+                    html += childNode.getInlineHTMLWithoutExpand();
+                } else {
+                    html += _getArrayIndexHTML(index);
+                    html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
+                }
+
+                if (index < arrayLength - 1) {
+                    html += '<span class="comma">,</span>';
+                }
+
+                html += '</div>';
+                return html;
+            },
+
+            getArrayItemsHTML: function() {
+                let html = '';
+                if (!_shouldGroupArrayItems(this.value)) {
+                    this.value.forEach((item, index) => {
+                        html += this.getArrayElementHTML(item, index, this.value.length);
+                    });
+                    return html;
+                }
+
+                for (let start = 0; start < this.value.length; start += ARRAY_RANGE_GROUP_SIZE) {
+                    let end = Math.min(start + ARRAY_RANGE_GROUP_SIZE, this.value.length);
+                    html += '<div class="item item-block item-array-range collapsed" data-array-range-start="' + start + '" data-array-range-end="' + end + '">' +
+                        '<span class="expand"></span>' +
+                        '<span class="array-range-label">[ <span class="array-range-start">' + start + '</span> - <span class="array-range-end">' + end + '</span> ]</span>' +
+                        '<span class="ellipsis"></span>' +
+                        '<div class="kv-list item-array-range-list">';
+                    for (let index = start; index < end; index++) {
+                        html += this.getArrayElementHTML(this.value[index], index, this.value.length);
+                    }
+                    html += '</div></div>';
+                }
+                return html;
+            },
+
             getArrayHTML: function() {
                 if (!this.value || this.value.length === 0) {
                     return '<div class="item item-array"><span class="brace">[</span><span class="brace">]</span></div>';
@@ -2345,27 +2405,8 @@ window.Formatter = (function () {
                     '<span class="brace">[</span>' +
                     '<span class="ellipsis"></span>' +
                     '<div class="kv-list item-array-container">';
-                    
-                this.value.forEach((item, index) => {
-                    let childNode = createNode(item);
-                    
-                    html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                    
-                    // 如果数组元素是对象或数组，在前面添加展开按钮
-                    if (childNode.type === 'object' || childNode.type === 'array') {
-                        html += '<span class="expand"></span>';
-                        html += childNode.getInlineHTMLWithoutExpand();
-                    } else {
-                        html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                    }
-                    
-                    // 如果不是最后一个元素，添加逗号
-                    if (index < this.value.length - 1) {
-                        html += '<span class="comma">,</span>';
-                    }
-                    
-                    html += '</div>';
-                });
+
+                html += this.getArrayItemsHTML();
                 
                 html += '</div><span class="brace">]</span></div>';
                 return html;
@@ -2442,26 +2483,7 @@ window.Formatter = (function () {
                     '<span class="ellipsis"></span>' +
                     '<div class="kv-list item-array-container">';
                     
-                this.value.forEach((item, index) => {
-                    let childNode = createNode(item);
-                    
-                    html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                    
-                    // 如果数组元素是对象或数组，在前面添加展开按钮
-                    if (childNode.type === 'object' || childNode.type === 'array') {
-                        html += '<span class="expand"></span>';
-                        html += childNode.getInlineHTMLWithoutExpand();
-                    } else {
-                        html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                    }
-                    
-                    // 如果不是最后一个元素，添加逗号
-                    if (index < this.value.length - 1) {
-                        html += '<span class="comma">,</span>';
-                    }
-                    
-                    html += '</div>';
-                });
+                html += this.getArrayItemsHTML();
                 
                 html += '</div><span class="brace">]</span>';
                 return html;
@@ -2512,26 +2534,7 @@ window.Formatter = (function () {
                     '<span class="ellipsis"></span>' +
                     '<div class="kv-list item-array-container">';
                     
-                this.value.forEach((item, index) => {
-                    let childNode = createNode(item);
-                    
-                    html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                    
-                    // 确保所有类型的数组元素都能正确处理
-                    if (childNode.type === 'object' || childNode.type === 'array') {
-                        html += '<span class="expand"></span>';
-                        html += childNode.getInlineHTMLWithoutExpand();
-                    } else {
-                        html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                    }
-                    
-                    // 如果不是最后一个元素，添加逗号
-                    if (index < this.value.length - 1) {
-                        html += '<span class="comma">,</span>';
-                    }
-                    
-                    html += '</div>';
-                });
+                html += this.getArrayItemsHTML();
                 
                 html += '</div><span class="brace">]</span>';
                 return html;

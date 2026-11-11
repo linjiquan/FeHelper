@@ -214,6 +214,7 @@ describe('json-auto-utils', () => {
                 appendChild(child) { this.children.push(child); child.parentNode = this; },
                 removeChild(child) { this.children.splice(this.children.indexOf(child), 1); },
             };
+            element.appendChild({ className: 'array-index', textContent: String(index) });
             if (hasComma) {
                 element.appendChild({ className: 'comma', textContent: ',' });
             }
@@ -228,8 +229,9 @@ describe('json-auto-utils', () => {
         utils.reindexArrayElementNodes(visibleNodes, documentRef);
 
         expect(visibleNodes.map(node => node.attributes['data-array-index'])).toEqual(['0', '1']);
-        expect(visibleNodes[0].children.map(child => child.className)).toEqual(['comma']);
-        expect(visibleNodes[1].children.map(child => child.className)).toEqual([]);
+        expect(visibleNodes.map(node => node.children[0].textContent)).toEqual(['0', '1']);
+        expect(visibleNodes[0].children.map(child => child.className)).toEqual(['array-index', 'comma']);
+        expect(visibleNodes[1].children.map(child => child.className)).toEqual(['array-index']);
     });
 
     it('Issue #640: fallback anchor downloader starts the first click and cleans up', () => {

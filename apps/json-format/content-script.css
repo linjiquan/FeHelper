@@ -212,6 +212,52 @@ html.fh-jf .item-array .item-array-element {
     padding-left: 0;
     margin-left: 0;
 }
+
+html.fh-jf .item-array .item-array-range {
+    display: block;
+    padding-left: 0;
+    margin-left: 0;
+}
+
+html.fh-jf .item-array .item-array-range > .expand:first-child {
+    position: absolute;
+    left: -16px;
+    top: 2px;
+}
+
+html.fh-jf .item-array .item-array-range.collapsed > .expand:first-child {
+    top: -4px;
+    left: -20px;
+}
+
+html.fh-jf .item-array .item-array-range > .array-range-label {
+    color: #9f9f9f;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+html.fh-jf .item-array .item-array-range > .item-array-range-list {
+    display: block;
+    padding-left: 24px;
+    border-left: 1px dashed #bbb;
+    margin-left: 2px;
+}
+
+html.fh-jf .item-array .item-array-element > .array-index {
+    display: inline-block;
+    min-width: 1.5em;
+    margin-right: 4px;
+    color: #8b91d9;
+    text-align: right;
+    font-style: normal;
+}
+
+html.fh-jf .item-array .item-array-element > .array-index-colon {
+    margin-right: 6px;
+    color: #2f5963;
+    font-weight: 600;
+}
 html.fh-jf .item .string {
     word-wrap: break-word;
     white-space: pre-wrap;

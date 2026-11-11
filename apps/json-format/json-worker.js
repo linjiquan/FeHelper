@@ -63,6 +63,16 @@ function normalizePreservedKey(key) {
     return key;
 }
 
+function getArrayIndexHTML(index) {
+    return '<span class="array-index">' + index + '</span><span class="array-index-colon">: </span>';
+}
+
+var ARRAY_RANGE_GROUP_SIZE = 100;
+
+function shouldGroupArrayItems(value) {
+    return Array.isArray(value) && value.length > ARRAY_RANGE_GROUP_SIZE;
+}
+
 function safeStringify(obj, space) {
     const tagged = JSON.stringify(obj, function(key, value) {
         if (typeof value === 'bigint') {
@@ -383,6 +393,51 @@ function createNode(value) {
             return html;
         },
         
+        getArrayElementHTML: function(item, index, arrayLength) {
+            let childNode = createNode(item);
+            let html = '<div class="item item-block item-array-element" data-array-index="' + index + '">';
+
+            if (childNode.type === 'object' || childNode.type === 'array') {
+                html += '<span class="expand"></span>';
+                html += getArrayIndexHTML(index);
+                html += childNode.getInlineHTMLWithoutExpand();
+            } else {
+                html += getArrayIndexHTML(index);
+                html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
+            }
+
+            if (index < arrayLength - 1) {
+                html += '<span class="comma">,</span>';
+            }
+
+            html += '</div>';
+            return html;
+        },
+
+        getArrayItemsHTML: function() {
+            let html = '';
+            if (!shouldGroupArrayItems(this.value)) {
+                this.value.forEach((item, index) => {
+                    html += this.getArrayElementHTML(item, index, this.value.length);
+                });
+                return html;
+            }
+
+            for (let start = 0; start < this.value.length; start += ARRAY_RANGE_GROUP_SIZE) {
+                let end = Math.min(start + ARRAY_RANGE_GROUP_SIZE, this.value.length);
+                html += '<div class="item item-block item-array-range collapsed" data-array-range-start="' + start + '" data-array-range-end="' + end + '">' +
+                    '<span class="expand"></span>' +
+                    '<span class="array-range-label">[ <span class="array-range-start">' + start + '</span> - <span class="array-range-end">' + end + '</span> ]</span>' +
+                    '<span class="ellipsis"></span>' +
+                    '<div class="kv-list item-array-range-list">';
+                for (let index = start; index < end; index++) {
+                    html += this.getArrayElementHTML(this.value[index], index, this.value.length);
+                }
+                html += '</div></div>';
+            }
+            return html;
+        },
+
         getArrayHTML: function() {
             if (!this.value || this.value.length === 0) {
                 return '<div class="item item-array"><span class="brace">[</span><span class="brace">]</span></div>';
@@ -393,27 +448,8 @@ function createNode(value) {
                 '<span class="brace">[</span>' +
                 '<span class="ellipsis"></span>' +
                 '<div class="kv-list item-array-container">';
-                
-            this.value.forEach((item, index) => {
-                let childNode = createNode(item);
-                
-                html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                
-                // 如果数组元素是对象或数组，在前面添加展开按钮
-                if (childNode.type === 'object' || childNode.type === 'array') {
-                    html += '<span class="expand"></span>';
-                    html += childNode.getInlineHTMLWithoutExpand();
-                } else {
-                    html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                }
-                
-                // 如果不是最后一个元素，添加逗号
-                if (index < this.value.length - 1) {
-                    html += '<span class="comma">,</span>';
-                }
-                
-                html += '</div>';
-            });
+
+            html += this.getArrayItemsHTML();
             
             html += '</div><span class="brace">]</span></div>';
             return html;
@@ -490,26 +526,7 @@ function createNode(value) {
                 '<span class="ellipsis"></span>' +
                 '<div class="kv-list item-array-container">';
                 
-            this.value.forEach((item, index) => {
-                let childNode = createNode(item);
-                
-                html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                
-                // 如果数组元素是对象或数组，在前面添加展开按钮
-                if (childNode.type === 'object' || childNode.type === 'array') {
-                    html += '<span class="expand"></span>';
-                    html += childNode.getInlineHTMLWithoutExpand();
-                } else {
-                    html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                }
-                
-                // 如果不是最后一个元素，添加逗号
-                if (index < this.value.length - 1) {
-                    html += '<span class="comma">,</span>';
-                }
-                
-                html += '</div>';
-            });
+            html += this.getArrayItemsHTML();
             
             html += '</div><span class="brace">]</span>';
             return html;
@@ -560,26 +577,7 @@ function createNode(value) {
                 '<span class="ellipsis"></span>' +
                 '<div class="kv-list item-array-container">';
                 
-            this.value.forEach((item, index) => {
-                let childNode = createNode(item);
-                
-                html += '<div class="item item-block item-array-element" data-array-index="' + index + '">';
-                
-                // 确保所有类型的数组元素都能正确处理
-                if (childNode.type === 'object' || childNode.type === 'array') {
-                    html += '<span class="expand"></span>';
-                    html += childNode.getInlineHTMLWithoutExpand();
-                } else {
-                    html += childNode.getHTML().replace(/^<div class="item item-line(?: item-line-wrap)?">/, '').replace(/<\/div>$/, '');
-                }
-                
-                // 如果不是最后一个元素，添加逗号
-                if (index < this.value.length - 1) {
-                    html += '<span class="comma">,</span>';
-                }
-                
-                html += '</div>';
-            });
+            html += this.getArrayItemsHTML();
             
             html += '</div><span class="brace">]</span>';
             return html;
