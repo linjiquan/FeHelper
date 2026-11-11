@@ -640,7 +640,7 @@ window.Formatter = (function () {
         }
 
         const cleanNode = el.clone();
-        cleanNode.find('.boxOpt').remove();
+        cleanNode.find('.boxOpt,.key-copy').remove();
         cleanNode.find('.array-index,.array-index-colon').remove();
         let txt = cleanNode.text()
             .replace(/":\s/gm, '":')
@@ -655,6 +655,31 @@ window.Formatter = (function () {
         }
 
         return txt;
+    };
+
+    let _getJsonPropertyText = function(el) {
+        let keyText = el.children('.key').first().text();
+        if (!keyText || el.hasClass('item-array-element')) {
+            return getJsonText(el);
+        }
+
+        if (cachedJsonValue !== null) {
+            try {
+                let valueText = _stringifyJsonNodeValue(el);
+                if (valueText !== undefined && valueText !== '') {
+                    return JSON.stringify(keyText) + ': ' + valueText;
+                }
+            } catch (e) {
+            }
+        }
+
+        const cleanNode = el.clone();
+        cleanNode.find('.boxOpt,.key-copy').remove();
+        cleanNode.find('.array-index,.array-index-colon').remove();
+        return cleanNode.text()
+            .replace(/":\s/gm, '": ')
+            .replace(/,$/, '')
+            .trim();
     };
 
     let _getJsonPathKeys = function (curEl) {
@@ -1140,7 +1165,7 @@ window.Formatter = (function () {
 
         if (!directText) {
             directText = el.clone()
-                .children('.kv-list,.boxOpt,.array-index,.array-index-colon')
+                .children('.kv-list,.boxOpt,.key-copy,.array-index,.array-index-colon')
                 .remove()
                 .end()
                 .text();
@@ -1565,6 +1590,8 @@ window.Formatter = (function () {
             }
         });
 
+        jfContent.on('click.fhJsonTree', '.key-copy', _handleKeyCopyClick);
+
         jfContent.on('click.fhJsonTree', '.boxOpt a', _handleNodeOptionClick);
 
         // 点击选中：高亮
@@ -1733,6 +1760,16 @@ window.Formatter = (function () {
             return true;
         }
         
+        return false;
+    };
+
+    let _handleKeyCopyClick = function(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        let el = $(event.target).closest('.item');
+        if (!el.length) return false;
+        _copyToClipboard(_getJsonPropertyText(el), '当前属性 JSON 已复制到剪贴板！');
         return false;
     };
     
@@ -2204,6 +2241,15 @@ window.Formatter = (function () {
         return Array.isArray(value) && value.length > ARRAY_RANGE_GROUP_SIZE;
     };
 
+    let _getKeyHTML = function(displayKey) {
+        let safeKey = htmlspecialchars(displayKey);
+        return '<span class="quote">"</span>' +
+            '<span class="key">' + safeKey + '</span>' +
+            '<span class="quote">"</span>' +
+            '<button type="button" class="key-copy" title="复制当前节点的JSON数据" aria-label="复制当前节点的JSON数据"></button>' +
+            '<span class="colon">: </span>';
+    };
+
     // 工具函数：获取或创建唯一图片预览浮窗节点
     function getOrCreateImgPreview() {
         let $img = $('#fh-img-preview');
@@ -2329,10 +2375,7 @@ window.Formatter = (function () {
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += '<span class="expand"></span>';
                     }
-                    html += '<span class="quote">"</span>' +
-                        '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                        '<span class="quote">"</span>' +
-                        '<span class="colon">: </span>';
+                    html += _getKeyHTML(displayKey);
                     // 添加值
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += childNode.getInlineHTMLWithoutExpand();
@@ -2455,10 +2498,7 @@ window.Formatter = (function () {
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += '<span class="expand"></span>';
                     }
-                    html += '<span class="quote">"</span>' +
-                        '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                        '<span class="quote">"</span>' +
-                        '<span class="colon">: </span>';
+                    html += _getKeyHTML(displayKey);
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += childNode.getInlineHTMLWithoutExpand();
                     } else {
@@ -2507,10 +2547,7 @@ window.Formatter = (function () {
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += '<span class="expand"></span>';
                     }
-                    html += '<span class="quote">"</span>' +
-                        '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                        '<span class="quote">"</span>' +
-                        '<span class="colon">: </span>';
+                    html += _getKeyHTML(displayKey);
                     if (childNode.type === 'object' || childNode.type === 'array') {
                         html += childNode.getInlineHTMLWithoutExpand();
                     } else {

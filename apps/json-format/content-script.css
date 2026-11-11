@@ -181,6 +181,54 @@ html.fh-jf .item-line .key {
     flex-shrink: 0;
 }
 
+html.fh-jf .key-copy {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin: 0 4px 0 5px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    position: relative;
+    vertical-align: -3px;
+}
+
+html.fh-jf .item.fh-hover > .key-copy,
+html.fh-jf .key-copy:focus {
+    opacity: 1;
+    visibility: visible;
+}
+
+html.fh-jf .key-copy::before,
+html.fh-jf .key-copy::after {
+    content: "";
+    position: absolute;
+    box-sizing: border-box;
+    width: 10px;
+    height: 12px;
+    border: 2px solid #1e9af0;
+    border-radius: 1px;
+    background: #fff;
+}
+
+html.fh-jf .key-copy::before {
+    left: 2px;
+    top: 3px;
+}
+
+html.fh-jf .key-copy::after {
+    left: 5px;
+    top: 0;
+}
+
+html.fh-jf .key-copy:hover::before,
+html.fh-jf .key-copy:hover::after {
+    border-color: #0b79c8;
+}
+
 html.fh-jf .item-line .colon {
     margin-right: 2px;
     flex-shrink: 0;

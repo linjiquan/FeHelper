@@ -73,6 +73,15 @@ function shouldGroupArrayItems(value) {
     return Array.isArray(value) && value.length > ARRAY_RANGE_GROUP_SIZE;
 }
 
+function getKeyHTML(displayKey) {
+    var safeKey = htmlspecialchars(displayKey);
+    return '<span class="quote">"</span>' +
+        '<span class="key">' + safeKey + '</span>' +
+        '<span class="quote">"</span>' +
+        '<button type="button" class="key-copy" title="复制当前节点的JSON数据" aria-label="复制当前节点的JSON数据"></button>' +
+        '<span class="colon">: </span>';
+}
+
 function safeStringify(obj, space) {
     const tagged = JSON.stringify(obj, function(key, value) {
         if (typeof value === 'bigint') {
@@ -372,10 +381,7 @@ function createNode(value) {
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += '<span class="expand"></span>';
                 }
-                html += '<span class="quote">"</span>' +
-                    '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                    '<span class="quote">"</span>' +
-                    '<span class="colon">: </span>';
+                html += getKeyHTML(displayKey);
                 // 添加值
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += childNode.getInlineHTMLWithoutExpand();
@@ -498,10 +504,7 @@ function createNode(value) {
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += '<span class="expand"></span>';
                 }
-                html += '<span class="quote">"</span>' +
-                    '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                    '<span class="quote">"</span>' +
-                    '<span class="colon">: </span>';
+                html += getKeyHTML(displayKey);
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += childNode.getInlineHTMLWithoutExpand();
                 } else {
@@ -550,10 +553,7 @@ function createNode(value) {
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += '<span class="expand"></span>';
                 }
-                html += '<span class="quote">"</span>' +
-                    '<span class="key">' + htmlspecialchars(displayKey) + '</span>' +
-                    '<span class="quote">"</span>' +
-                    '<span class="colon">: </span>';
+                html += getKeyHTML(displayKey);
                 if (childNode.type === 'object' || childNode.type === 'array') {
                     html += childNode.getInlineHTMLWithoutExpand();
                 } else {

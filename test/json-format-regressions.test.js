@@ -263,8 +263,42 @@ describe('tree data integrity', () => {
             _safeStringify: (value, space) => JSON.stringify(value, null, space)
         });
         expect(JSON.parse(actual)).toEqual(value);
-        expect(removedSelectors).toContain('.boxOpt');
+        expect(removedSelectors).toContain('.boxOpt,.key-copy');
         expect(removedSelectors).toContain('.array-index,.array-index-colon');
+    });
+
+    it('key-adjacent copy includes the object key in the copied fragment', () => {
+        const source = readSource('apps/json-format/format-lib.js');
+        const start = source.indexOf('let getJsonText = function');
+        const end = source.indexOf('let _getJsonPathKeys', start);
+        const removedSelectors = [];
+        const cleanNode = {
+            find(selector) {
+                removedSelectors.push(selector);
+                return {remove() {}};
+            },
+            text() { return '"app_id": "";'; }
+        };
+        const keyNode = {
+            first() {
+                return {text() { return 'app_id'; }};
+            }
+        };
+        const el = {
+            children(selector) {
+                expect(selector).toBe('.key');
+                return keyNode;
+            },
+            hasClass() { return false; },
+            clone() { return cleanNode; }
+        };
+        const actual = vm.runInNewContext(source.slice(start, end) + '\n_getJsonPropertyText(el);', {
+            cachedJsonValue: null,
+            el,
+            _safeStringify: (value, space) => JSON.stringify(value, null, space)
+        });
+        expect(actual).toBe('"app_id": "";');
+        expect(removedSelectors).toContain('.boxOpt,.key-copy');
     });
 
     it('#669: collapse and expand include a root array as well as nested containers', () => {
